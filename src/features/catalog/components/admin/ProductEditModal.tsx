@@ -19,7 +19,7 @@ export default function ProductEditModal({ product, onClose }: Props) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>(product.categorias || [])
   const [mainImage, setMainImage] = useState<File | null>(null)
   const [mainImagePreview, setMainImagePreview] = useState(
-    product.imagem_url ? optimizeUrl(product.imagem_url, 'public') : ''
+    product.imagem_url ? optimizeUrl(product.imagem_url, 'thumbnail') : ''
   )
   const [variations, setVariations] = useState<Array<{ 
     cor: string

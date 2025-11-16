@@ -189,7 +189,7 @@ export default function LayoutManager() {
       {images.map((imageId, i) => (
         <div key={`${imageId}-${i}`} className={`relative ${aspectClass} border-2 border-gray-200 rounded-xl overflow-hidden group hover:border-primary transition-colors bg-gray-50`}>
           <img 
-            src={optimizeUrl(imageId, 'public')} 
+            src={optimizeUrl(imageId, 'thumbnail')} 
             alt={`${type} ${i + 1}`} 
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />

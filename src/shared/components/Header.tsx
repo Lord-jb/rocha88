@@ -9,7 +9,7 @@ export default function Header() {
   const { data, isLoading } = useCatalog()
   
   const logoId = data?.layout.logo
-  const logoUrl = logoId ? optimizeUrl(logoId, 'public') : ''
+  const logoUrl = logoId ? optimizeUrl(logoId, 'thumbnail') : ''
 
   return (
     <header className="sticky top-0 z-40 bg-white shadow-md border-b border-gray-100">

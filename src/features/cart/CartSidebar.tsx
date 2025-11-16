@@ -132,7 +132,7 @@ export default function CartSidebar() {
                     imgId = item.variacoes[0].thumb_url || item.variacoes[0].imagem_url
                   }
                   
-                  const imgUrl = imgId ? optimizeUrl(imgId, 'public') : ''
+                  const imgUrl = imgId ? optimizeUrl(imgId, 'thumbnail') : ''
 
                   return (
                     <div

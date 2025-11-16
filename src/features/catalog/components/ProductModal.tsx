@@ -31,14 +31,14 @@ export default memo(function ProductModal({ product, onClose }: Props) {
     if (product.variacoes?.length) {
       product.variacoes.forEach(v => {
         if (v.imagem_url) {
-          items.push({ label: v.cor, url: optimizeUrl(v.imagem_url, 'public'), variation: v })
+          items.push({ label: v.cor, url: optimizeUrl(v.imagem_url, 'thumbnail'), variation: v })
         }
       })
     }
 
     if (!items.length && product.imagens_urls?.length) {
       product.imagens_urls.forEach((url, i) => {
-        items.push({ label: i === 0 ? 'Imagem' : `Imagem ${i + 1}`, url: optimizeUrl(url, 'public') })
+        items.push({ label: i === 0 ? 'Imagem' : `Imagem ${i + 1}`, url: optimizeUrl(url, 'thumbnail') })
       })
     }
 
