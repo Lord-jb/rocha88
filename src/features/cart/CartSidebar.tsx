@@ -68,8 +68,20 @@ export default function CartSidebar() {
       message += `\n*Observações:* ${formData.obs}`
     }
 
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, '_blank')
+// remove tudo que não for número
+const cleanNumber = whatsappNumber.replace(/\D/g, '')
+
+// WhatsApp Mobile odeia espaços e quebras no final.
+// trim() resolve
+const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message.trim())}`
+
+// iOS/Safari precisa de _self
+if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+  window.location.href = whatsappUrl
+} else {
+  window.open(whatsappUrl, '_blank')
+}
+
     
     clear()
     toggle()
