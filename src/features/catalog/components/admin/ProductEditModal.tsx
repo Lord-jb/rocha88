@@ -30,7 +30,7 @@ export default function ProductEditModal({ product, onClose }: Props) {
     product.variacoes?.map(v => ({ 
       cor: v.cor, 
       image: null, 
-      preview: optimizeUrl(v.imagem_url, 'public'), 
+      preview: optimizeUrl(v.imagem_url, 'thumbnail'), 
       existingUrl: v.imagem_url 
     })) || []
   )

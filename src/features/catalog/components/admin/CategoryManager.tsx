@@ -201,7 +201,7 @@ export default function CategoryManager() {
             <div className="flex items-center gap-4 flex-1">
               {cat.imagePath && (
                 <img
-                  src={optimizeUrl(cat.imagePath, 'public')}
+                  src={optimizeUrl(cat.imagePath, 'thumbnail')}
                   alt={cat.nome}
                   className="w-16 h-16 object-cover rounded-lg"
                 />

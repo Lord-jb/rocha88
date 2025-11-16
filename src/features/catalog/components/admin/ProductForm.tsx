@@ -1,10 +1,10 @@
+// src/features/catalog/components/admin/ProductForm.tsx
 import { useState } from 'react'
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { db, storage } from '../../../../core/lib/firebase'
+import { db } from '../../../../core/lib/firebase'
 import { useCategories } from '../../../../core/hooks/useCategories'
 import { uploadToCloudflare } from '../../../../core/lib/cloudflare'
-import { fetchProductGroupFromSheet } from '../../../../core/lib/googleSheets' // 👈 NOVO
+import { fetchProductGroupFromSheet } from '../../../../core/lib/googleSheets'
 import { X, Upload } from 'lucide-react'
 import type { ProductVariation } from '../../../../types/product'
 
@@ -14,10 +14,11 @@ export default function ProductForm() {
   const [descricao, setDescricao] = useState('')
   const [destaque, setDestaque] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [categoryError, setCategoryError] = useState(false)
 
   const [mainImage, setMainImage] = useState<File | null>(null)
   const [mainImagePreview, setMainImagePreview] = useState<string>('')
-
+  
   const [variations, setVariations] = useState<
     Array<{ cor: string; image: File | null; preview: string }>
   >([])
@@ -26,8 +27,6 @@ export default function ProductForm() {
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-
-  // 👇 loading só da planilha
   const [sheetLoading, setSheetLoading] = useState(false)
 
   const { data: categories = [] } = useCategories()
@@ -49,7 +48,6 @@ export default function ProductForm() {
       ]
       setVariations(newVariations)
 
-      // se ainda não tem cor principal, assume a primeira que adicionar
       if (!mainColor) {
         setMainColor(newColor)
       }
@@ -67,26 +65,15 @@ export default function ProductForm() {
 
   const handleRemoveVariation = (index: number) => {
     const removedColor = variations[index]?.cor
-    const newVariations = variations.filter((_, i) => i !== index)
+    const newVariations = variations.filter((_: any, i: number) => i !== index)
     setVariations(newVariations)
 
-    // se removeu a cor principal, tenta definir outra
     setMainColor((prev) => {
       if (prev && prev === removedColor) {
         return newVariations[0]?.cor ?? ''
       }
       return prev
     })
-  }
-
-  async function uploadOriginal(
-    file: File,
-    pathWithoutExt: string
-  ): Promise<string> {
-    const ext = file.name.split('.').pop() || 'jpg'
-    const storageRef = ref(storage, `${pathWithoutExt}.${ext}`)
-    await uploadBytes(storageRef, file)
-    return getDownloadURL(storageRef)
   }
 
   const handleSkuBlur = async () => {
@@ -104,28 +91,23 @@ export default function ProductForm() {
         return
       }
 
-      // 👉 Garante que o sku fica sempre no formato base (1000_115)
       setSku(group.baseSku)
 
-      // Nome sem cor
       if (group.nome) {
         setNome(group.nome)
       }
 
-      // Descrição
       if (group.descricao) {
         setDescricao(group.descricao)
       }
 
-      // Categorias: marca as que vierem da planilha
       if (group.categorias?.length) {
         setSelectedCategories(group.categorias)
+        setCategoryError(false)
       }
 
-      // Destaque
       setDestaque(group.destaque)
 
-      // Variações: cada cor da planilha vira uma variação no form
       if (group.variacoes?.length) {
         const novasVariacoes = group.variacoes.map((v: { cor: string }) => ({
           cor: v.cor,
@@ -134,8 +116,6 @@ export default function ProductForm() {
         }))
         setVariations(novasVariacoes)
 
-        // define cor principal vinda da planilha:
-        // prioridade: cor com "preto" no nome, senão a primeira
         const preta = group.variacoes.find((v: { cor: string }) =>
           v.cor.toLowerCase().includes('preto')
         )
@@ -160,9 +140,16 @@ export default function ProductForm() {
     }
   }
 
-  // src/features/catalog/components/admin/ProductForm.tsx - handleSubmit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (selectedCategories.length === 0) {
+      setCategoryError(true)
+      setMessage('Selecione pelo menos uma categoria')
+      return
+    }
+    
+    setCategoryError(false)
     setLoading(true)
     setMessage('')
 
@@ -173,11 +160,8 @@ export default function ProductForm() {
       const variationsData: ProductVariation[] = []
 
       let mainImageId: string | null = null
-
-      // mapa de cor -> imageId (para poder escolher a principal pela cor)
       const variationImageByColor: Record<string, string> = {}
 
-      // 1) Faz upload das variações primeiro
       for (const variation of variations) {
         if (!variation.image) continue
 
@@ -198,7 +182,6 @@ export default function ProductForm() {
         variationImageByColor[variation.cor] = imageId
       }
 
-      // 2) Se o usuário enviou imagem principal, ela manda em tudo
       if (mainImage) {
         mainImageId = await uploadToCloudflare(mainImage, {
           folder: `produtos/${sku}`,
@@ -206,14 +189,11 @@ export default function ProductForm() {
           type: 'main',
         })
 
-        // principal sempre na frente do array
         allImageIds.unshift(mainImageId)
       } else {
-        // 3) Se NÃO tem imagem principal, tenta usar a cor principal escolhida
         if (mainColor && variationImageByColor[mainColor]) {
           mainImageId = variationImageByColor[mainColor]
         } else {
-          // se não escolher cor principal, prioridade pra uma variação com "preto"
           const pretaKey = Object.keys(variationImageByColor).find((c) =>
             c.toLowerCase().includes('preto')
           )
@@ -221,7 +201,6 @@ export default function ProductForm() {
           if (pretaKey) {
             mainImageId = variationImageByColor[pretaKey]
           } else {
-            // fallback: primeira variação com imagem
             const firstImageId = Object.values(variationImageByColor)[0]
             if (firstImageId) {
               mainImageId = firstImageId
@@ -256,6 +235,7 @@ export default function ProductForm() {
       setDescricao('')
       setDestaque(false)
       setSelectedCategories([])
+      setCategoryError(false)
       setMainImage(null)
       setMainImagePreview('')
       setVariations([])
@@ -293,7 +273,7 @@ export default function ProductForm() {
                 type="text"
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
-                onBlur={handleSkuBlur} // 👈 busca automática ao sair do campo
+                onBlur={handleSkuBlur}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
                 required
               />
@@ -320,17 +300,20 @@ export default function ProductForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold mb-2">Categorias</label>
-          <div className="flex flex-wrap gap-2">
+          <label className="block text-sm font-semibold mb-2">
+            Categorias <span className="text-red-500">*</span>
+          </label>
+          <div className={`flex flex-wrap gap-2 p-3 rounded-lg border-2 ${categoryError ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
             {categories.map((cat) => (
               <label
                 key={cat.id}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100"
+                className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg cursor-pointer hover:bg-gray-50 border border-gray-200"
               >
                 <input
                   type="checkbox"
                   checked={selectedCategories.includes(cat.nome)}
                   onChange={(e) => {
+                    setCategoryError(false)
                     if (e.target.checked) {
                       setSelectedCategories((prev) => [...prev, cat.nome])
                     } else {
@@ -345,6 +328,9 @@ export default function ProductForm() {
               </label>
             ))}
           </div>
+          {categoryError && (
+            <p className="text-xs text-red-500 mt-1">Selecione pelo menos uma categoria</p>
+          )}
         </div>
 
         <div>
@@ -438,7 +424,7 @@ export default function ProductForm() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
               >
                 <option value="">Selecione a cor principal</option>
-                {variations.map((variation, index) => (
+                {variations.map((variation: { cor: string; image: File | null; preview: string }, index: number) => (
                   <option key={variation.cor + index} value={variation.cor}>
                     {variation.cor}
                   </option>
@@ -452,7 +438,7 @@ export default function ProductForm() {
           )}
 
           <div className="space-y-3">
-            {variations.map((variation, index) => (
+            {variations.map((variation: { cor: string; image: File | null; preview: string }, index: number) => (
               <div
                 key={index}
                 className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"

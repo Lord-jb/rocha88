@@ -17,7 +17,7 @@ interface CatalogData {
   layout: LayoutConfig
 }
 
-export function useCatalog(productLimit = 100) {
+export function useCatalog(productLimit = 6) {
   return useQuery<CatalogData>({
     queryKey: ['catalog', productLimit],
     queryFn: async () => {
@@ -47,6 +47,8 @@ export function useCatalog(productLimit = 100) {
 }
 
 function getCachedCatalog(): CatalogData | undefined {
+  if (typeof window === 'undefined') return undefined
+  
   try {
     const cached = localStorage.getItem('catalog-cache')
     if (cached) {
@@ -62,6 +64,8 @@ function getCachedCatalog(): CatalogData | undefined {
 }
 
 export function setCachedCatalog(data: CatalogData) {
+  if (typeof window === 'undefined') return
+  
   try {
     localStorage.setItem('catalog-cache', JSON.stringify({
       catalog: data,

@@ -12,7 +12,7 @@ interface Props {
 
 export default memo(function ProductCard({ product, onView, onAdd }: Props) {
   const imgId = product.thumb_url || product.imagem_url || product.variacoes?.[0]?.thumb_url || product.variacoes?.[0]?.imagem_url
-  const imgUrl = imgId ? optimizeUrl(imgId, 'public') : ''
+  const imgUrl = imgId ? optimizeUrl(imgId, 'thumbnail') : ''
   
   return (
     <article className="group bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 transform hover:-translate-y-1">

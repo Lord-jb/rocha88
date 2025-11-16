@@ -3,13 +3,13 @@ import { useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   collection, query as fsQuery, orderBy, limit, startAfter,
-  getDocs, deleteDoc, doc, QueryDocumentSnapshot, type DocumentData
+  getDocs, deleteDoc, doc, QueryDocumentSnapshot, type DocumentData, where
 } from 'firebase/firestore'
 import { db } from '../../../../core/lib/firebase'
 import { deleteMultipleImages } from '../../../../core/lib/cloudflare'
 import { optimizeUrl } from '../../../../shared/utils/image'
 import type { Product } from '../../../../types/product'
-import { Trash2, Edit, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Trash2, Edit, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import ProductEditModal from '../../../../features/catalog/components/admin/ProductEditModal'
 
 export default function ProductList() {
@@ -17,6 +17,7 @@ export default function ProductList() {
   const [cursors, setCursors] = useState<QueryDocumentSnapshot<DocumentData>[]>([])
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
   const pageSize = 50
   const qc = useQueryClient()
 
@@ -54,6 +55,15 @@ export default function ProductList() {
     placeholderData: (prev) => prev ?? [],
     staleTime: 30_000,
   })
+
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm.trim()) return products
+    const term = searchTerm.toLowerCase()
+    return products.filter(p => 
+      p.nome.toLowerCase().includes(term) || 
+      p.id.toLowerCase().includes(term)
+    )
+  }, [products, searchTerm])
 
   const handleDelete = async (product: Product) => {
     if (!confirm(`Tem certeza que deseja excluir "${product.nome}"?`)) return
@@ -120,15 +130,28 @@ export default function ProductList() {
     <>
       <div className="bg-white rounded-xl shadow-sm">
         <div className="p-4 border-b border-gray-200">
-          <h2 className="text-xl font-title font-bold">
-            Produtos Cadastrados {isFetching && <span className="text-sm text-gray-400">(atualizando…)</span>}
-          </h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-xl font-title font-bold">
+              Produtos Cadastrados {isFetching && <span className="text-sm text-gray-400">(atualizando…)</span>}
+            </h2>
+            
+            <div className="relative w-full sm:w-64">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por nome ou SKU..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none text-sm"
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            </div>
+          </div>
         </div>
 
         <div className="max-h-[600px] overflow-auto divide-y">
-          {products.map((product: Product) => {
+          {filteredProducts.map((product: Product) => {
             const imgId = product.thumb_url || product.imagem_url || product.imagens_urls?.[0]
-            const imgUrl = imgId ? optimizeUrl(imgId, 'public') : ''
+            const imgUrl = imgId ? optimizeUrl(imgId, 'thumbnail') : ''
             
             return (
               <div key={product.id} className="flex items-center gap-4 px-4 py-2 hover:bg-gray-50">

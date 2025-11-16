@@ -1,6 +1,6 @@
 // src/features/catalog/components/ProductModal.tsx
 import { useState, useMemo, memo } from 'react'
-import { X, ShoppingCart, Plus, Minus } from 'lucide-react'
+import { X, ShoppingCart, Plus, Minus, Package, Tag } from 'lucide-react'
 import { optimizeUrl } from '../../../shared/utils/image'
 import { useCart } from '../../../core/store/cart'
 import type { Product, ProductVariation } from '../../../types/product'
@@ -19,6 +19,7 @@ interface GalleryItem {
 export default memo(function ProductModal({ product, onClose }: Props) {
   const { add } = useCart()
   const [quantity, setQuantity] = useState(1)
+  const [selectedColor, setSelectedColor] = useState<string>('')
 
   const gallery = useMemo<GalleryItem[]>(() => {
     const items: GalleryItem[] = []
@@ -48,9 +49,15 @@ export default memo(function ProductModal({ product, onClose }: Props) {
   const active = gallery[activeIndex] || gallery[0]
 
   const handleAdd = () => {
-    const selectedColor = active?.variation?.cor
+    if (product.variacoes?.length && !selectedColor) {
+      alert('Selecione uma cor antes de adicionar ao orçamento')
+      return
+    }
+
+    const colorToUse = selectedColor || active?.variation?.cor
+
     for (let i = 0; i < quantity; i++) {
-      add({ ...product, cor: selectedColor })
+      add({ ...product, cor: colorToUse })
     }
     onClose()
   }
@@ -69,47 +76,58 @@ export default memo(function ProductModal({ product, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="relative bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="relative bg-white rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden shadow-2xl flex flex-col">
+        {/* Botão Fechar */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 bg-black/70 text-white rounded-full p-2 z-10 hover:bg-black transition"
+          className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full p-2.5 z-10 hover:bg-white shadow-lg transition-all"
         >
-          <X size={18} />
+          <X size={20} />
         </button>
 
-        <div className="grid md:grid-cols-[1.2fr_1fr] gap-0 md:gap-6 h-full">
-          <div className="bg-gray-50 flex flex-col">
-            <div className="flex-1 flex items-center justify-center p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 flex-1 overflow-hidden">
+          {/* Galeria de Imagens */}
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
+            <div className="flex-1 flex items-center justify-center overflow-hidden">
               {active && (
                 <img
                   src={active.url}
                   alt={`${product.nome} - ${active.label}`}
-                  className="max-h-[340px] md:max-h-[560px] w-auto object-contain"
+                  className="w-full h-full object-contain drop-shadow-xl"
                   loading="eager"
+                  style={{ maxHeight: '70vh' }}
                 />
               )}
             </div>
 
+            {/* Miniaturas */}
             {gallery.length > 1 && (
-              <div className="border-t border-gray-200 px-4 py-3 flex gap-2 overflow-x-auto">
+              <div className="border-t border-gray-200 bg-white/80 backdrop-blur-sm px-4 py-3 flex gap-2 overflow-x-auto flex-shrink-0">
                 {gallery.map((item, idx) => (
                   <button
                     key={`${item.label}-${idx}`}
                     type="button"
                     onClick={() => setActiveIndex(idx)}
-                    className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border ${
+                    className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden transition-all ${
                       idx === activeIndex
-                        ? 'border-primary ring-2 ring-primary/40'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'ring-3 ring-primary scale-110 shadow-lg'
+                        : 'ring-1 ring-gray-200 hover:ring-gray-300 opacity-70 hover:opacity-100'
                     }`}
                     title={item.label}
                   >
-                    <img src={optimizeUrl(item.url, 'thumbnail')} alt={item.label} className="w-full h-full object-cover" loading="lazy" />
+                    <img 
+                      src={optimizeUrl(item.url, 'thumbnail')} 
+                      alt={item.label} 
+                      className="w-full h-full object-cover" 
+                      loading="lazy" 
+                    />
                     {item.variation && (
-                      <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-[10px] text-white px-1 py-0.5 text-center truncate">
-                        {item.variation.cor}
-                      </span>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-1">
+                        <span className="text-[9px] text-white font-semibold block truncate text-center">
+                          {item.variation.cor}
+                        </span>
+                      </div>
                     )}
                   </button>
                 ))}
@@ -117,99 +135,145 @@ export default memo(function ProductModal({ product, onClose }: Props) {
             )}
           </div>
 
-          <div className="p-5 md:p-6 flex flex-col overflow-y-auto">
-            <div className="mb-4">
-              <h2 className="font-bold text-2xl text-gray-800 mb-1">{product.nome}</h2>
-              <p className="text-sm text-gray-500">Cód: {product.id}</p>
-            </div>
+          {/* Informações do Produto */}
+          <div className="flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              {/* Header */}
+              <div className="mb-6">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 bg-primary/10 rounded-xl flex-shrink-0">
+                    <Package className="text-primary" size={24} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-title font-bold text-xl md:text-2xl text-gray-900 mb-2 break-words leading-tight">
+                      {product.nome}
+                    </h2>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Tag size={16} className="flex-shrink-0" />
+                      <span className="font-mono font-semibold break-all">SKU: {product.id}</span>
+                    </div>
+                  </div>
+                </div>
 
-            {product.descricao && (
-              <p className="text-sm text-gray-700 mb-4 whitespace-pre-line">
-                {product.descricao}
-              </p>
-            )}
-
-            {product.categorias?.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                {product.categorias.map(cat => (
-                  <span key={cat} className="px-2 py-1 bg-gray-100 rounded-full text-xs font-semibold text-gray-700">
-                    {cat}
-                  </span>
-                ))}
+                {/* Categorias */}
+                {product.categorias?.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {product.categorias.map(cat => (
+                      <span key={cat} className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-full text-xs font-semibold text-primary">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
 
-            {product.variacoes?.length ? (
-              <div className="mb-4">
-                <p className="text-xs font-semibold text-gray-500 mb-1">Cores disponíveis</p>
+              {/* Descrição */}
+              {product.descricao && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <p className="text-sm text-gray-700 whitespace-pre-line break-words leading-relaxed">
+                    {product.descricao}
+                  </p>
+                </div>
+              )}
 
-                <div className="flex flex-wrap gap-2">
-                  {product.variacoes?.map(v => {
-                    const isActive = gallery[activeIndex]?.variation?.cor === v.cor
-                    return (
-                      <button
-                        key={v.cor}
-                        type="button"
-                        onClick={() => {
-                          const targetIndex = gallery.findIndex(g => g.variation?.cor === v.cor)
-                          if (targetIndex >= 0) setActiveIndex(targetIndex)
-                        }}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition ${
-                          isActive
-                            ? 'bg-primary text-white border-primary'
-                            : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {v.cor}
-                      </button>
-                    )
-                  })}
+              {/* Seleção de Cores */}
+              {product.variacoes?.length ? (
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <label className="text-sm font-bold text-gray-900">
+                      Escolha a cor
+                      <span className="text-red-500 ml-1">*</span>
+                    </label>
+                    {selectedColor && (
+                      <span className="text-xs text-primary font-semibold">
+                        ✓ {selectedColor}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    {product.variacoes?.map(v => {
+                      const isActive = selectedColor === v.cor
+                      return (
+                        <button
+                          key={v.cor}
+                          type="button"
+                          onClick={() => {
+                            setSelectedColor(v.cor)
+                            const targetIndex = gallery.findIndex(g => g.variation?.cor === v.cor)
+                            if (targetIndex >= 0) setActiveIndex(targetIndex)
+                          }}
+                          className={`px-3 py-2.5 rounded-xl text-sm font-semibold transition-all break-words text-left ${
+                            isActive
+                              ? 'bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg scale-105'
+                              : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-primary hover:bg-primary/5'
+                          }`}
+                        >
+                          {v.cor}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {product.variacoes.length > 0 && !selectedColor && (
+                    <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+                      <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                      Selecione uma cor antes de adicionar
+                    </p>
+                  )}
+                </div>
+              ) : null}
+
+              {/* Quantidade */}
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  Quantidade
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={decrementQuantity}
+                    className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all flex-shrink-0"
+                  >
+                    <Minus size={18} className="text-gray-700" />
+                  </button>
+                  
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={handleQuantityChange}
+                    className="w-20 text-center px-3 py-2.5 bg-gray-50 text-gray-900 text-lg font-bold rounded-xl border-2 border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                  
+                  <button
+                    type="button"
+                    onClick={incrementQuantity}
+                    className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all flex-shrink-0"
+                  >
+                    <Plus size={18} className="text-gray-700" />
+                  </button>
+
+                  <span className="text-sm text-gray-500 font-medium">
+                    {quantity === 1 ? 'un.' : 'uns.'}
+                  </span>
                 </div>
               </div>
-            ) : null}
-
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-gray-500 mb-2">Quantidade</p>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={decrementQuantity}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
-                >
-                  <Minus size={18} className="text-gray-600" />
-                </button>
-                
-                <input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={handleQuantityChange}
-                  className="w-20 text-center px-3 py-2 bg-gray-50 text-gray-800 text-base font-bold rounded-lg border-2 border-gray-300 focus:border-primary focus:outline-none"
-                />
-                
-                <button
-                  type="button"
-                  onClick={incrementQuantity}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
-                >
-                  <Plus size={18} className="text-gray-600" />
-                </button>
-              </div>
             </div>
 
-            <div className="mt-auto pt-4 flex gap-3">
+            {/* Footer com Botões */}
+            <div className="border-t border-gray-200 bg-white p-4 md:p-6 space-y-2.5 flex-shrink-0">
               <button
                 onClick={handleAdd}
-                className="flex-1 inline-flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white font-semibold py-3 px-4 rounded-lg transition"
+                className="w-full inline-flex items-center justify-center gap-3 bg-gradient-to-r from-primary to-primary-dark text-white font-bold py-3.5 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02]"
               >
-                <ShoppingCart size={18} />
-                Adicionar ao orçamento
+                <ShoppingCart size={20} />
+                <span className="text-sm md:text-base">Adicionar ao Orçamento</span>
               </button>
               <button
                 onClick={onClose}
-                className="px-4 py-3 rounded-lg border border-gray-300 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
+                className="w-full py-2.5 rounded-xl border-2 border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
               >
-                Fechar
+                Continuar Comprando
               </button>
             </div>
           </div>

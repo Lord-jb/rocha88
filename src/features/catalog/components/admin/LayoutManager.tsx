@@ -245,7 +245,7 @@ export default function LayoutManager() {
           <div className="relative inline-block">
             <div className="w-64 h-32 border-2 border-gray-200 rounded-xl p-4 group hover:border-primary transition-colors bg-gray-50">
               <img 
-                src={optimizeUrl(assets.logo, 'public')} 
+                src={optimizeUrl(assets.logo, 'thumbnail')} 
                 alt="Logo" 
                 className="w-full h-full object-contain" 
               />
