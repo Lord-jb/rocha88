@@ -72,16 +72,21 @@ export default function ConfigManager() {
     setMessage('')
 
     try {
-      const numbersOnly = config.whatsappNumber.replace(/\D/g, '')
-      
-      if (numbersOnly.length < 10) {
-        setMessage('Número de WhatsApp inválido')
-        setLoading(false)
-        return
-      }
+let numbersOnly = config.whatsappNumber.replace(/\D/g, '')
 
-      await setDoc(doc(db, 'config', 'general'), {
-        whatsappNumber: numbersOnly,
+// (DDD + número) → mínimo 10 dígitos, máximo 11
+if (numbersOnly.length < 10 || numbersOnly.length > 11) {
+  setMessage('Número de WhatsApp inválido')
+  setLoading(false)
+  return
+}
+
+// sempre adiciona 55 ao salvar
+const numberToSave = `55${numbersOnly}`
+
+await setDoc(doc(db, 'config', 'general'), {
+  whatsappNumber: numberToSave,
+
         companyName: config.companyName,
         companyEmail: config.companyEmail || '',
         companyAddress: config.companyAddress || '',
