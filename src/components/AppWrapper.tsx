@@ -8,8 +8,6 @@ interface Props {
 }
 
 export default function AppWrapper({ children }: Props) {
-  console.log('📦 AppWrapper rendering')
-  
   return (
     <Providers>
       <Header />

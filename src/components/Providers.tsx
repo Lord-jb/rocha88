@@ -6,19 +6,38 @@ interface Props {
   children: ReactNode
 }
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60_000,
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-})
+let browserQueryClient: QueryClient | undefined = undefined
+
+function getQueryClient() {
+  if (typeof window === 'undefined') {
+    return new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 60_000,
+          refetchOnWindowFocus: false,
+          retry: 1,
+        },
+      },
+    })
+  }
+
+  if (!browserQueryClient) {
+    browserQueryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 60_000,
+          refetchOnWindowFocus: false,
+          retry: 1,
+        },
+      },
+    })
+  }
+
+  return browserQueryClient
+}
 
 export default function Providers({ children }: Props) {
-  console.log('🔌 Providers rendering')
-  console.log('🔌 QueryClient exists:', !!queryClient)
+  const queryClient = getQueryClient()
 
   return (
     <QueryClientProvider client={queryClient}>

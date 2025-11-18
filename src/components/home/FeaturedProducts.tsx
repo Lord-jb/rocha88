@@ -3,13 +3,23 @@ import { useCatalog } from '../../core/hooks/useCatalog'
 import ProductCard from '../products/ProductCard'
 
 export default function FeaturedProducts() {
-  console.log('⭐ FeaturedProducts rendering')
-  
   const { data, isLoading } = useCatalog()
   
   const featured = data?.products.filter(p => p.destaque).slice(0, 4) || []
 
-  if (isLoading || !featured.length) return null
+  if (isLoading) {
+    return (
+      <section className="container mx-auto px-4 py-16">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl h-96 animate-pulse" />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  if (!featured.length) return null
 
   return (
     <section className="container mx-auto px-4 py-16">

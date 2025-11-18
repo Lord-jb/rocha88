@@ -1,7 +1,7 @@
 // src/core/hooks/useCatalog.ts
 import { useQuery } from '@tanstack/react-query'
 import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore'
-import { db } from '../../core/lib/firebase'
+import { db } from '../lib/firebase'
 import type { Product, Category } from '../../types/product'
 
 interface LayoutConfig {
@@ -18,53 +18,56 @@ interface CatalogData {
 }
 
 export function useCatalog(productLimit = 6) {
-  console.log('🔍 useCatalog being called') // LOG
-  
   return useQuery<CatalogData>({
     queryKey: ['catalog', productLimit],
     queryFn: async () => {
-      console.log('🔍 useCatalog queryFn executing') // LOG
-      
-      const [productsSnap, categoriesSnap, layoutDoc] = await Promise.all([
-        getDocs(query(collection(db, 'produtos'), orderBy('createdAt', 'desc'), limit(productLimit))),
-        getDocs(query(collection(db, 'categorias'), orderBy('nome'))),
-        getDoc(doc(db, 'config', 'layout'))
-      ])
+      try {
+        const [productsSnap, categoriesSnap, layoutDoc] = await Promise.all([
+          getDocs(query(collection(db, 'produtos'), orderBy('createdAt', 'desc'), limit(productLimit))),
+          getDocs(query(collection(db, 'categorias'), orderBy('nome'))),
+          getDoc(doc(db, 'config', 'layout'))
+        ])
 
-      const products = productsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Product[]
-      const categories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Category[]
-      
-      const layoutData = layoutDoc.exists() ? layoutDoc.data() : {}
-      const layout: LayoutConfig = {
-        logo: layoutData.logo || '',
-        banners: (layoutData.banners || []).map((id: string) => ({ url: id, alt: 'Banner Rocha Brindes' })),
-        promotions: layoutData.promotions || [],
-        popups: layoutData.popups || []
+        const products = productsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Product[]
+        const categories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Category[]
+        
+        const layoutData = layoutDoc.exists() ? layoutDoc.data() : {}
+        
+        let banners: Array<{ url: string; alt?: string }> = []
+        if (layoutData.banners) {
+          if (Array.isArray(layoutData.banners)) {
+            banners = layoutData.banners.map((b: any) => {
+              if (typeof b === 'string') {
+                return { url: b, alt: 'Banner 88 Brindes' }
+              }
+              return { url: b.url || b, alt: b.alt || 'Banner 88 Brindes' }
+            })
+          }
+        }
+        
+        const layout: LayoutConfig = {
+          logo: layoutData.logo || '',
+          banners,
+          promotions: layoutData.promotions || [],
+          popups: layoutData.popups || []
+        }
+
+        console.log('Catalog loaded:', { 
+          productsCount: products.length, 
+          categoriesCount: categories.length, 
+          bannersCount: banners.length,
+          layout 
+        })
+
+        return { products, categories, layout }
+      } catch (error) {
+        console.error('Error loading catalog:', error)
+        throw error
       }
-
-      return { products, categories, layout }
     },
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    placeholderData: getCachedCatalog()
   })
-}
-
-function getCachedCatalog(): CatalogData | undefined {
-  if (typeof window === 'undefined') return undefined
-  
-  try {
-    const cached = localStorage.getItem('catalog-cache')
-    if (cached) {
-      const data = JSON.parse(cached)
-      const age = Date.now() - data.timestamp
-      if (age < 10 * 60 * 1000) {
-        return data.catalog
-      }
-    }
-  } catch (e) {
-    return undefined
-  }
 }
 
 export function setCachedCatalog(data: CatalogData) {

@@ -5,9 +5,7 @@ import { useCatalog } from '../../core/hooks/useCatalog'
 import { optimizeUrl } from '../../shared/utils/image'
 
 export default function HeroBanner() {
-  console.log('🎯 HeroBanner rendering')
-  
-  const { data } = useCatalog()
+  const { data, isLoading, error } = useCatalog()
   const [current, setCurrent] = useState(0)
   
   const banners = data?.layout.banners || []
@@ -18,24 +16,58 @@ export default function HeroBanner() {
     return () => clearInterval(timer)
   }, [banners.length])
 
-  if (!banners.length) return null
+  if (isLoading) {
+    return (
+      <section className="container mx-auto px-4 py-8">
+        <div className="h-64 md:h-96 lg:h-[500px] rounded-3xl bg-gray-200 animate-pulse" />
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="container mx-auto px-4 py-8">
+        <div className="h-64 md:h-96 lg:h-[500px] rounded-3xl bg-red-100 flex items-center justify-center">
+          <p className="text-red-600">Erro ao carregar banners</p>
+        </div>
+      </section>
+    )
+  }
+
+  if (!banners.length) {
+    return (
+      <section className="container mx-auto px-4 py-8">
+        <div className="h-64 md:h-96 lg:h-[500px] rounded-3xl bg-gray-100 flex items-center justify-center">
+          <p className="text-gray-500">Nenhum banner configurado</p>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="container mx-auto px-4 py-8">
       <div className="relative h-64 md:h-96 lg:h-[500px] rounded-3xl overflow-hidden bg-gray-200 shadow-card group">
-        {banners.map((banner, i) => (
-          <div 
-            key={i}
-            className={`absolute inset-0 transition-opacity duration-700 ${i === current ? 'opacity-100' : 'opacity-0'}`}
-          >
-            <img 
-              src={optimizeUrl(banner.url, 'public')}
-              alt={banner.alt || `Banner ${i + 1}`}
-              className="w-full h-full object-cover"
-              loading={i === 0 ? 'eager' : 'lazy'}
-            />
-          </div>
-        ))}
+        {banners.map((banner, i) => {
+          const imageUrl = optimizeUrl(banner.url, 'public')
+          
+          return (
+            <div 
+              key={i}
+              className={`absolute inset-0 transition-opacity duration-700 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+            >
+              <img 
+                src={imageUrl}
+                alt={banner.alt || `Banner ${i + 1}`}
+                className="w-full h-full object-cover"
+                loading={i === 0 ? 'eager' : 'lazy'}
+                onError={(e) => {
+                  console.error(`Erro ao carregar banner ${i}:`, imageUrl)
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            </div>
+          )
+        })}
         
         {banners.length > 1 && (
           <>

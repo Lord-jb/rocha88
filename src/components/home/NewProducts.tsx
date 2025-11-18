@@ -7,7 +7,19 @@ export default function NewProducts() {
   
   const newProducts = data?.products.slice(0, 8) || []
 
-  if (isLoading || !newProducts.length) return null
+  if (isLoading) {
+    return (
+      <section className="container mx-auto px-4 py-16 bg-gray-50">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl h-96 animate-pulse" />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  if (!newProducts.length) return null
 
   return (
     <section className="container mx-auto px-4 py-16 bg-gray-50">

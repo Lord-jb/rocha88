@@ -8,8 +8,6 @@ import InstagramFeed from './home/InstagramFeed'
 import ClientsSection from './home/ClientsSection'
 
 export default function HomePage() {
-  console.log('🏠 HomePage rendering')
-  
   return (
     <>
       <HeroBanner />

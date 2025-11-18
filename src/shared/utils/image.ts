@@ -2,11 +2,22 @@
 const CLOUDFLARE_ACCOUNT_HASH = 'iem94FVEkj3Qjv3DsJXpbQ'
 
 export function optimizeUrl(imageId: string, variant: 'public' | 'thumbnail' | 'original' = 'public'): string {
-  if (!imageId) return ''
-  if (imageId.startsWith('http://') || imageId.startsWith('https://')) return imageId
-  if (imageId.startsWith('blob:') || imageId.startsWith('data:')) return imageId
+  if (!imageId) {
+    console.warn('optimizeUrl: imageId vazio')
+    return ''
+  }
   
-  return `https://imagedelivery.net/${CLOUDFLARE_ACCOUNT_HASH}/${imageId}/${variant}`
+  if (imageId.startsWith('http://') || imageId.startsWith('https://')) {
+    return imageId
+  }
+  
+  if (imageId.startsWith('blob:') || imageId.startsWith('data:')) {
+    return imageId
+  }
+  
+  const url = `https://imagedelivery.net/${CLOUDFLARE_ACCOUNT_HASH}/${imageId}/${variant}`
+  console.log('optimizeUrl:', { imageId, variant, url })
+  return url
 }
 
 export function preloadImage(imageId: string, priority: 'high' | 'low' = 'high') {
@@ -24,14 +35,5 @@ export function preloadCriticalImages(imageIds: string[]) {
   
   imageIds.slice(0, 3).forEach((id, i) => {
     if (id) preloadImage(id, i === 0 ? 'high' : 'low')
-  })
-}
-
-export function getImageDimensions(url: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
-    img.onerror = reject
-    img.src = url
   })
 }
